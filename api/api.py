@@ -5,6 +5,7 @@ from flasgger import swag_from
 
 api = Api()
 
+#User Table General Listing API
 class UsuarioListResource(Resource):
     @swag_from({
         
@@ -86,6 +87,7 @@ class UsuarioListResource(Resource):
         db.session.add(usuario)
         db.session.commit()
         return {"message": "Usuário criado com sucesso"}, 201
+#User Table Detailed API
 class UsuarioDetailResource(Resource):
     @swag_from({
         'tags': ['Usuario'],
@@ -238,7 +240,9 @@ class UsuarioDetailResource(Resource):
 api.add_resource(UsuarioListResource, "/api/usuarios")
 api.add_resource(UsuarioDetailResource, "/api/usuarios/<int:usuario_id>")
 
+#Conta Pagamento Table General Listing API
 class ContaPagamentosResourceList(Resource):
+    
     @swag_from({
         'tags': ['Conta Pagamento'],
         'parameters': [
@@ -368,6 +372,7 @@ class ContaPagamentosResourceList(Resource):
         db.session.add(conta)
         db.session.commit()
         return {"message": "Payment account created successfully"}, 201
+#Conta Pagamento Table Detailed API
 class ContaPagamentoResourceDetail(Resource):
     @swag_from({
         'tags': ['Conta Pagamento'],
@@ -529,6 +534,7 @@ class ContaPagamentoResourceDetail(Resource):
 api.add_resource(ContaPagamentosResourceList, "/api/contas")
 api.add_resource(ContaPagamentoResourceDetail,"/api/contas/<int:conta_id>")
 
+#Transacao Table General Listing API
 class TransacaoResourceList(Resource):
     @swag_from({
         'tags': ['Transação'],
@@ -653,6 +659,7 @@ class TransacaoResourceList(Resource):
         db.session.add(transacao)
         db.session.commit()
         return {"message": "Transação criada com sucesso"}, 201
+#Transacao Table Detailed API
 class TransacaoResourceDetail(Resource):
     
     @swag_from({
@@ -814,6 +821,7 @@ class TransacaoResourceDetail(Resource):
 api.add_resource(TransacaoResourceList, "/api/transacoes")
 api.add_resource(TransacaoResourceDetail,"/api/transacoes/<int:transacao_id>")
 
+#Metodo Pagamento Table General Listing API
 class MetodoPagamentoResourceList(Resource):
     @swag_from({
         'tags': ['Método de Pagamento'],
@@ -922,6 +930,7 @@ class MetodoPagamentoResourceList(Resource):
         db.session.add(metodo)
         db.session.commit()
         return {"message": "Método de pagamento criado com sucesso"}, 201
+#Metodo Pagamento Table Detailed API
 class MetodoPagamentoResourceDetail(Resource):
     @swag_from({
         'tags': ['Método de Pagamento'],
@@ -1068,6 +1077,7 @@ class MetodoPagamentoResourceDetail(Resource):
 api.add_resource(MetodoPagamentoResourceList,"/api/metodos-pagamento")
 api.add_resource(MetodoPagamentoResourceDetail, "/api/metodos-pagamento/<int:metodo_id>")
 
+#Transacao_Metodo Table General Listing API
 class TransacaoMetodoResourceList(Resource):
     @swag_from({
         'tags': ['Transacao_metodo'],
@@ -1165,7 +1175,7 @@ class TransacaoMetodoResourceList(Resource):
         db.session.commit()
         return {"message": "Método de transação criado com sucesso"}, 201
 
-
+#Transacao_Metodo Table Detailed API
 class TransacaoMetodoResourceDetail(Resource):
     @swag_from({
         'tags': ['Transacao_metodo'],

@@ -4,8 +4,9 @@ from flask_admin import Admin
 from flasgger import Swagger 
 from config.config import Config
 from models.models import db, Usuario, ContaPagamento, Transacao, MetodoPagamento, TransacaoMetodo
-from views.views import UsuarioModelView, ContaPagamentoModelView, TransacaoModelView, MetodoPagamentoModelView, Transacao_MetodoModelView
+from views.views import UsuarioModelView
 from api.api import api
+from flask_admin.contrib.sqla import ModelView
 
 #App Starter
 app = Flask("Trabalho de LBD - Sistema de Pagamentos")
@@ -28,10 +29,10 @@ adminPage = Admin(app, name='Admin Page', template_mode="bootstrap4")
 
 #Admin Page Views
 adminPage.add_view(UsuarioModelView(Usuario, db.session))
-adminPage.add_view(ContaPagamentoModelView(ContaPagamento, db.session))
-adminPage.add_view(TransacaoModelView(Transacao, db.session))
-adminPage.add_view(MetodoPagamentoModelView(MetodoPagamento, db.session))
-adminPage.add_view(Transacao_MetodoModelView(TransacaoMetodo, db.session))
+adminPage.add_view(UsuarioModelView(ContaPagamento, db.session))
+adminPage.add_view(UsuarioModelView(Transacao, db.session))
+adminPage.add_view(UsuarioModelView(MetodoPagamento, db.session))
+adminPage.add_view(UsuarioModelView(TransacaoMetodo, db.session))
 
 #Routes
 @app.route("/")
