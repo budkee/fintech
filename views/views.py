@@ -5,7 +5,7 @@ from flask_admin.model.form import BaseForm
 from flask_admin.form import rules
 
 # Define a custom ModelView for Usuario
-class UsuarioModelView(ModelView):
+class CustomModelView(ModelView):
     column_display_pk = True
     can_export = True
     can_view_details = True

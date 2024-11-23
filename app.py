@@ -4,7 +4,7 @@ from flask_admin import Admin
 from flasgger import Swagger 
 from config.config import Config
 from models.models import db, Usuario, ContaPagamento, Transacao, MetodoPagamento, TransacaoMetodo
-from views.views import UsuarioModelView
+from views.views import CustomModelView
 from api.api import api
 from flask_admin.contrib.sqla import ModelView
 
@@ -28,11 +28,11 @@ with app.app_context():
 adminPage = Admin(app, name='Admin Page', template_mode="bootstrap4")
 
 #Admin Page Views
-adminPage.add_view(UsuarioModelView(Usuario, db.session))
-adminPage.add_view(UsuarioModelView(ContaPagamento, db.session))
-adminPage.add_view(UsuarioModelView(Transacao, db.session))
-adminPage.add_view(UsuarioModelView(MetodoPagamento, db.session))
-adminPage.add_view(UsuarioModelView(TransacaoMetodo, db.session))
+adminPage.add_view(CustomModelView(Usuario, db.session))
+adminPage.add_view(CustomModelView(ContaPagamento, db.session))
+adminPage.add_view(CustomModelView(Transacao, db.session))
+adminPage.add_view(CustomModelView(MetodoPagamento, db.session))
+adminPage.add_view(CustomModelView(TransacaoMetodo, db.session))
 
 #Routes
 @app.route("/")
