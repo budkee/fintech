@@ -2,11 +2,11 @@ from flask import Flask, redirect
 from flask_migrate import Migrate
 from flask_admin import Admin
 from flasgger import Swagger 
+from sqlalchemy import event
 from config.config import Config
-from models.models import db, Usuario, ContaPagamento, Transacao, MetodoPagamento, TransacaoMetodo
+from models.models import db, Usuario, ContaPagamento, Transacao, MetodoPagamento, TransacaoMetodo, LogOperacao
 from views.views import CustomModelView
 from api.api import api
-from flask_admin.contrib.sqla import ModelView
 
 #App Starter
 app = Flask("Trabalho de LBD - Sistema de Pagamentos")
@@ -23,7 +23,7 @@ db.init_app(app)
 migrate = Migrate(app, db)
 with app.app_context():
     db.create_all()
-
+    
 #Admin Page Starter
 adminPage = Admin(app, name='Admin Page', template_mode="bootstrap4")
 
@@ -33,6 +33,7 @@ adminPage.add_view(CustomModelView(ContaPagamento, db.session))
 adminPage.add_view(CustomModelView(Transacao, db.session))
 adminPage.add_view(CustomModelView(MetodoPagamento, db.session))
 adminPage.add_view(CustomModelView(TransacaoMetodo, db.session))
+adminPage.add_view(CustomModelView(LogOperacao, db.session))
 
 #Routes
 @app.route("/")

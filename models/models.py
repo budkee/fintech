@@ -1,4 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import event, text, func
+from sqlalchemy.event import listens_for
 
 db = SQLAlchemy()
 
@@ -75,3 +77,151 @@ class TransacaoMetodo(db.Model):
     
     def __repr__(self):
         return f"<TransacaoMetodo transacao_id={self.transacao_id} metodo_id={self.metodo_id}>"
+    
+class LogOperacao(db.Model):
+    __tablename__ = 'log_operacao'
+    
+    log_id = db.Column(db.Integer, primary_key=True)
+    tabela = db.Column(db.String(255), nullable=False)  
+    operacao = db.Column(db.String(50), nullable=False)
+    data_operacao = db.Column(db.DateTime, nullable=False, server_default=db.func.current_timestamp()) # Valor padrão
+    registro_antigo = db.Column(db.Text)  
+    registro_novo = db.Column(db.Text)
+
+
+
+def create_triggers_for_table(table_name, columns, connection, database_url):
+    """Função para criar triggers para uma tabela específica, verificando se já existem."""
+    column_names = ', '.join([f"'{col}', NEW.{col}" for col in columns])
+    column_names_old = ', '.join([f"'{col}', OLD.{col}" for col in columns])
+
+    def trigger_exists(trigger_name):
+        """Verifica se o trigger já existe no banco de dados."""
+        if "mysql" in database_url:
+            query = text("""
+                SELECT COUNT(*)
+                FROM information_schema.TRIGGERS
+                WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = :trigger_name
+            """)
+        elif "postgresql" in database_url:
+            query = text("""
+                SELECT COUNT(*)
+                FROM pg_trigger
+                WHERE tgname = :trigger_name
+            """)
+        elif "sqlite" in database_url:
+            # SQLite não possui uma maneira direta de listar triggers
+            # Use um SELECT na tabela sqlite_master
+            query = text("""
+                SELECT COUNT(*)
+                FROM sqlite_master
+                WHERE type = 'trigger' AND name = :trigger_name
+            """)
+        else:
+            raise ValueError(f"Banco de dados {database_url} não suportado para verificação de triggers.")
+        
+        result = connection.execute(query, {"trigger_name": trigger_name}).scalar()
+        return result > 0
+
+    # Criação condicional para cada trigger no MySQL
+    if "mysql" in database_url:
+        if not trigger_exists(f"{table_name}_log_insert"):
+            trigger_insert = f"""
+            CREATE TRIGGER {table_name}_log_insert
+            AFTER INSERT ON {table_name}
+            FOR EACH ROW
+            BEGIN
+                INSERT INTO log_operacao (tabela, operacao, registro_novo)
+                VALUES ('{table_name}', 'INSERT', JSON_OBJECT({column_names}));
+            END;
+            """
+            connection.execute(text(trigger_insert))
+
+        if not trigger_exists(f"{table_name}_log_update"):
+            trigger_update = f"""
+            CREATE TRIGGER {table_name}_log_update
+            AFTER UPDATE ON {table_name}
+            FOR EACH ROW
+            BEGIN
+                INSERT INTO log_operacao (tabela, operacao, registro_antigo, registro_novo)
+                VALUES ('{table_name}', 'UPDATE', 
+                        JSON_OBJECT({column_names_old}),
+                        JSON_OBJECT({column_names}));
+            END;
+            """
+            connection.execute(text(trigger_update))
+
+        if not trigger_exists(f"{table_name}_log_delete"):
+            trigger_delete = f"""
+            CREATE TRIGGER {table_name}_log_delete
+            AFTER DELETE ON {table_name}
+            FOR EACH ROW
+            BEGIN
+                INSERT INTO log_operacao (tabela, operacao, registro_antigo)
+                VALUES ('{table_name}', 'DELETE', JSON_OBJECT({column_names_old}));
+            END;
+            """
+            connection.execute(text(trigger_delete))
+    
+    elif "postgresql" in database_url:
+        # PostgreSQL Trigger Function
+        if not trigger_exists(f"{table_name}_log"):
+            trigger_function = f"""
+            CREATE OR REPLACE FUNCTION log_{table_name}_operations()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                IF TG_OP = 'INSERT' THEN
+                    INSERT INTO log_operacao (tabela, operacao, registro_novo)
+                    VALUES ('{table_name}', TG_OP, row_to_json(NEW)::text);
+                ELSIF TG_OP = 'UPDATE' THEN
+                    INSERT INTO log_operacao (tabela, operacao, registro_antigo, registro_novo)
+                    VALUES ('{table_name}', TG_OP, row_to_json(OLD)::text, row_to_json(NEW)::text);
+                ELSIF TG_OP = 'DELETE' THEN
+                    INSERT INTO log_operacao (tabela, operacao, registro_antigo)
+                    VALUES ('{table_name}', TG_OP, row_to_json(OLD)::text);
+                END IF;
+                RETURN NULL;
+            END;
+            $$ LANGUAGE plpgsql;
+            """
+            trigger_sql = f"""
+            CREATE TRIGGER {table_name}_log
+            AFTER INSERT OR UPDATE OR DELETE ON {table_name}
+            FOR EACH ROW EXECUTE FUNCTION log_{table_name}_operations();
+            """
+            connection.execute(text(trigger_function))
+            connection.execute(text(trigger_sql))
+
+    elif "sqlite" in database_url:
+        if not trigger_exists(f"{table_name}_log_crud"):
+            trigger_sql = f"""
+            CREATE TRIGGER {table_name}_log_crud
+            AFTER INSERT OR UPDATE OR DELETE ON {table_name}
+            BEGIN
+                CASE
+                    WHEN (NEW IS NOT NULL AND OLD IS NULL) THEN
+                        INSERT INTO log_operacao (tabela, operacao, registro_novo)
+                        VALUES ('{table_name}', 'INSERT', 'Dados: {column_names}');
+                    WHEN (NEW IS NOT NULL AND OLD IS NOT NULL) THEN
+                        INSERT INTO log_operacao (tabela, operacao, registro_antigo, registro_novo)
+                        VALUES ('{table_name}', 'UPDATE', 
+                                'Antigo: {column_names_old}',
+                                'Novo: {column_names}');
+                    WHEN (NEW IS NULL AND OLD IS NOT NULL) THEN
+                        INSERT INTO log_operacao (tabela, operacao, registro_antigo)
+                        VALUES ('{table_name}', 'DELETE', 'Antigo: {column_names_old}');
+                END;
+            END;
+            """
+            connection.execute(text(trigger_sql))
+
+    
+@listens_for(db.Model.metadata, 'after_create')
+def create_triggers_for_all_tables(target, connection, **kw):
+    database_url = connection.engine.url.drivername
+    
+    # Itera sobre todas as tabelas do metadata
+    for table_name, table in target.tables.items():
+        if table_name != "log_operacao":  # Ignora a tabela de log
+            columns = [col.name for col in table.columns]
+            create_triggers_for_table(table_name, columns, connection, database_url)

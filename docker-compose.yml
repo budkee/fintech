@@ -1,0 +1,36 @@
+services:
+  app:
+    image: trab-lbd
+    volumes:
+      - data:/app/instance  # Montando o volume compartilhado onde o SQLite ficará armazenado
+    environment:
+      - DB_TYPE=mysql
+      - DB_USER=root
+      - DB_PORT=3306
+      - DB_HOST=mysql_service
+      - DB_NAME=mydb
+    ports:
+      - 8080:8080
+    networks:
+      - app-network
+    restart: always
+    depends_on:
+      - mysql_service
+
+  mysql_service:
+    image: mysql:latest
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: true
+      MYSQL_DATABASE: mydb
+    ports:
+      - "8084:3306"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  data:  # Volume nomeado persistente
+    driver: local
