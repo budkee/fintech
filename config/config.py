@@ -14,17 +14,17 @@ class Config:
     def get_database_uri():
         
         #Usuario da Database
-        DB_USER = os.getenv('DB_USER','root')
+        DB_USER = os.getenv('DB_USER','postgres')
         #Senha do usuario da DB
-        DB_PASSWORD = os.getenv('DB_PASSWORD','')    
+        DB_PASSWORD = os.getenv('DB_PASSWORD','postgres')    
         #Endereco do Servidor DB
         DB_HOST = os.getenv('DB_HOST', 'localhost')
         #Porta de Conexao ao DB
-        DB_PORT = os.getenv('DB_PORT', '3306')
+        DB_PORT = os.getenv('DB_PORT', '5432')
         #Tipo de database
-        DB_NAME = os.getenv('DB_NAME', 'mydb')
+        DB_NAME = os.getenv('DB_NAME', 'postgres')
         
-        DB_TYPE = os.getenv('DB_TYPE','mysql')
+        DB_TYPE = os.getenv('DB_TYPE','postgres')
         
         if DB_TYPE == "mysql":
 
@@ -33,9 +33,6 @@ class Config:
         elif DB_TYPE == "postgres":
 
             return f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-
-        else:
-            return 'sqlite:///mydb.sqlite3'
     
     SQLALCHEMY_DATABASE_URI = get_database_uri()
         

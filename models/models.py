@@ -109,14 +109,6 @@ def create_triggers_for_table(table_name, columns, connection, database_url):
                 FROM pg_trigger
                 WHERE tgname = :trigger_name
             """)
-        elif "sqlite" in database_url:
-            # SQLite não possui uma maneira direta de listar triggers
-            # Use um SELECT na tabela sqlite_master
-            query = text("""
-                SELECT COUNT(*)
-                FROM sqlite_master
-                WHERE type = 'trigger' AND name = :trigger_name
-            """)
         else:
             raise ValueError(f"Banco de dados {database_url} não suportado para verificação de triggers.")
         
@@ -191,30 +183,6 @@ def create_triggers_for_table(table_name, columns, connection, database_url):
             """
             connection.execute(text(trigger_function))
             connection.execute(text(trigger_sql))
-
-    elif "sqlite" in database_url:
-        if not trigger_exists(f"{table_name}_log_crud"):
-            trigger_sql = f"""
-            CREATE TRIGGER {table_name}_log_crud
-            AFTER INSERT OR UPDATE OR DELETE ON {table_name}
-            BEGIN
-                CASE
-                    WHEN (NEW IS NOT NULL AND OLD IS NULL) THEN
-                        INSERT INTO log_operacao (tabela, operacao, registro_novo)
-                        VALUES ('{table_name}', 'INSERT', 'Dados: {column_names}');
-                    WHEN (NEW IS NOT NULL AND OLD IS NOT NULL) THEN
-                        INSERT INTO log_operacao (tabela, operacao, registro_antigo, registro_novo)
-                        VALUES ('{table_name}', 'UPDATE', 
-                                'Antigo: {column_names_old}',
-                                'Novo: {column_names}');
-                    WHEN (NEW IS NULL AND OLD IS NOT NULL) THEN
-                        INSERT INTO log_operacao (tabela, operacao, registro_antigo)
-                        VALUES ('{table_name}', 'DELETE', 'Antigo: {column_names_old}');
-                END;
-            END;
-            """
-            connection.execute(text(trigger_sql))
-
     
 @listens_for(db.Model.metadata, 'after_create')
 def create_triggers_for_all_tables(target, connection, **kw):
