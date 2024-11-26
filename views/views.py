@@ -1,10 +1,11 @@
 from flask_admin.contrib.sqla import ModelView
 from models.models import db
 from wtforms import StringField, IntegerField, DecimalField
-from flask_admin.model.form import BaseForm
 from flask_admin.form import rules
+from wtforms.validators import Optional
 
 # Define a custom ModelView for Usuario
+
 class CustomModelView(ModelView):
     column_display_pk = True
     can_export = True
@@ -21,21 +22,27 @@ class CustomModelView(ModelView):
         super().__init__(model, session, **kwargs)
     
     def _generate_form_create_rules(self, model):
-        fields = [column.key for column in model.__table__.columns  if not column.primary_key and column.autoincrement]
+        fields = [column.key for column in model.__table__.columns]
         return (rules.FieldSet(fields, f"{model.__name__} Campos"),)
 
     def _generate_form_extra_fields(self, model):
         extra_fields = {}
         for column in model.__table__.columns:
-            if column.primary_key and column.autoincrement:
-                continue
-            # Verifica o tipo da coluna e associa ao campo correspondente
+            field_args = {}
+            # Adiciona o valor padrão, se definido
+            if column.default is not None:
+                field_args['default'] = column.default.arg
+            
+            # Permite valores nulos
+            field_args['validators'] = [Optional()]
+
+            # Associa os campos de acordo com o tipo de dado
             if isinstance(column.type, db.Integer):
-                extra_fields[column.key] = IntegerField(column.key.capitalize())
+                extra_fields[column.key] = IntegerField(column.key.capitalize(), **field_args)
             elif isinstance(column.type, db.Numeric):
                 extra_fields[column.key] = DecimalField(
-                    column.key.capitalize(), places=2
+                    column.key.capitalize(), places=2, **field_args
                 )
             elif isinstance(column.type, (db.String, db.Text)):
-                extra_fields[column.key] = StringField(column.key.capitalize())
+                extra_fields[column.key] = StringField(column.key.capitalize(), **field_args)
         return extra_fields

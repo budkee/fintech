@@ -16,14 +16,14 @@ class Config:
         #Usuario da Database
         DB_USER = os.getenv('DB_USER','postgres')
         #Senha do usuario da DB
-        DB_PASSWORD = os.getenv('DB_PASSWORD','postgres')    
+        DB_PASSWORD = os.getenv('DB_PASSWORD','')    
         #Endereco do Servidor DB
         DB_HOST = os.getenv('DB_HOST', 'localhost')
         #Porta de Conexao ao DB
         DB_PORT = os.getenv('DB_PORT', '5432')
-        #Tipo de database
+        #Nome da database
         DB_NAME = os.getenv('DB_NAME', 'postgres')
-        
+        #Tipo da Database
         DB_TYPE = os.getenv('DB_TYPE','postgres')
         
         if DB_TYPE == "mysql":

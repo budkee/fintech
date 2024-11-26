@@ -1,8 +1,7 @@
 services:
   app:
-    image: trab-lbd
-    volumes:
-      - data:/app/instance  # Montando o volume compartilhado onde o SQLite ficará armazenado
+    image: trab-l
+
     environment:
       - DB_TYPE=mysql
       - DB_USER=root
@@ -23,7 +22,7 @@ services:
       MYSQL_ALLOW_EMPTY_PASSWORD: true
       MYSQL_DATABASE: mydb
     ports:
-      - "8084:3306"
+      - "3306:3306"
     networks:
       - app-network
 
