@@ -14,8 +14,7 @@ services:
       - 8080:8080
     networks:
       - app-network
-    # restart: always
-    # command: tail -f /dev/null  # Deixa o container rodando
+    restart: always
     depends_on:
       postgres_service:
         condition: service_healthy

@@ -1,7 +1,7 @@
 services:
   app:
     container_name: 'payment_system'
-    image: trab-l
+    image: trab-lbd
     environment:
       - DB_TYPE=mysql
       - DB_USER=root
