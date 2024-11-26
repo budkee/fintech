@@ -1,0 +1,59 @@
+services:
+  app:
+    container_name: 'payment_system'
+    image: trab-l
+    environment:
+      - DB_TYPE=mysql
+      - DB_USER=root
+      - DB_PORT=3306
+      - DB_HOST=mysql_service
+      - DB_NAME=mydb
+    ports:
+      - 8080:8080
+    networks:
+      - app-network
+    restart: always
+    depends_on:
+      mysql_service:
+        condition: service_healthy
+
+  mysql_service:
+    container_name: 'mysql_service'
+    image: mysql:latest
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: true
+      MYSQL_DATABASE: mydb
+    ports:
+      - "3306:3306"
+    networks:
+      - app-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h mysql_service -u root",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+  
+  phpmyadmin:
+    container_name: 'phpmyadmin'
+    image: phpmyadmin:latest
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+    restart: always
+    ports:
+      - 8183:80
+    networks:
+      - app-network
+      
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  data:  # Volume nomeado persistente
+    driver: local

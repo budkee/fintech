@@ -1,0 +1,69 @@
+services:
+  app:
+    container_name: 'payment_system'
+    image: trab-lbd
+    volumes:
+      - data:/app/instance  # Montando o volume compartilhado onde o SQLite ficará armazenado
+    environment:
+      - DB_TYPE=postgres
+      - DB_USER=postgres
+      - DB_PORT=5432
+      - DB_HOST=postgres_service
+      - DB_NAME=mydb
+    ports:
+      - 8080:8080
+    networks:
+      - app-network
+    # restart: always
+    # command: tail -f /dev/null  # Deixa o container rodando
+    depends_on:
+      postgres_service:
+        condition: service_healthy
+
+  postgres_service:
+    
+    container_name: 'postgres_service'
+    image: postgres:latest
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mydb
+      TZ: 'America/Campo_Grande'
+    ports:
+      - "5432:5432" # Aplicação
+      - "7878:5432" # Pgadmin
+    expose:
+      - "5432"
+    networks:
+      - app-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -h postgres_service -p 5432 -U postgres",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  pgadmin:
+
+    container_name: 'pgadmin'
+    image: dpage/pgadmin4:8.13
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "postgres@postgres.com"
+      PGADMIN_DEFAULT_PASSWORD: "postgres"
+    ports:
+      - "7777:80"
+    networks:
+      - app-network
+    depends_on:
+      postgres_service:
+        condition: service_healthy
+    
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  data:  # Volume nomeado persistente
+    driver: local
