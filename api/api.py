@@ -1,6 +1,6 @@
 from flask import request, jsonify
 from flask_restful import Api, Resource
-from models.models import db, Usuario, ContaPagamento, Transacao, MetodoPagamento, TransacaoMetodo
+from models.models import db, Usuario, ContaPagamento, Transacao, MetodoPagamento, TransacaoMetodo,LogOperacao
 from flasgger import swag_from
 
 api = Api()
@@ -1319,3 +1319,182 @@ class TransacaoMetodoResourceDetail(Resource):
 
 api.add_resource(TransacaoMetodoResourceList, "/api/transacao-metodos")
 api.add_resource(TransacaoMetodoResourceDetail,"/api/transacao-metodos/<int:transacao_metodo_id>")
+
+class LogOperacaoListResource(Resource):
+    @swag_from({
+        'tags': ['LogOperacao'],
+        'responses': {
+            200: {
+                'description': 'Lista de todas as operações de log',
+                'schema': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'object',
+                        'properties': {
+                            'log_id': {'type': 'integer'},
+                            'tabela': {'type': 'string'},
+                            'operacao': {'type': 'string'},
+                            'data_operacao': {'type': 'string', 'format': 'date-time'},
+                            'registro_antigo': {'type': 'string'},
+                            'registro_novo': {'type': 'string'}
+                        }
+                    }
+                }
+            }
+        }
+    })
+    def get(self):
+        logs = LogOperacao.query.all()
+        return [
+            {
+                "log_id": log.log_id,
+                "tabela": log.tabela,
+                "operacao": log.operacao,
+                "data_operacao": log.data_operacao.isoformat(),
+                "registro_antigo": log.registro_antigo,
+                "registro_novo": log.registro_novo
+            }
+            for log in logs
+        ]
+    
+    @swag_from({
+        'tags': ['LogOperacao'],
+        'parameters': [
+            {
+                'name': 'body',
+                'in': 'body',
+                'required': True,
+                'schema': {
+                    'type': 'object',
+                    'properties': {
+                        'tabela': {'type': 'string'},
+                        'operacao': {'type': 'string'},
+                        'registro_antigo': {'type': 'string'},
+                        'registro_novo': {'type': 'string'}
+                    },
+                    'required': ['tabela', 'operacao']
+                }
+            }
+        ],
+        'responses': {
+            201: {
+                'description': 'Log de operação criado com sucesso',
+                'schema': {
+                    'type': 'object',
+                    'properties': {
+                        'message': {'type': 'string'}
+                    }
+                }
+            }
+        }
+    })
+    def post(self):
+        data = request.get_json()
+        log = LogOperacao(
+            tabela=data['tabela'],
+            operacao=data['operacao'],
+            registro_antigo=data.get('registro_antigo'),
+            registro_novo=data.get('registro_novo')
+        )
+        db.session.add(log)
+        db.session.commit()
+        return {"message": "Log de operação criado com sucesso"}, 201
+
+
+class LogOperacaoDetailResource(Resource):
+    @swag_from({
+        'tags': ['LogOperacao'],
+        'parameters': [
+            {
+                'name': 'log_id',
+                'in': 'path',
+                'required': True,
+                'type': 'integer',
+                'description': 'ID do log'
+            }
+        ],
+        'responses': {
+            200: {
+                'description': 'Detalhes de um log de operação',
+                'schema': {
+                    'type': 'object',
+                    'properties': {
+                        'log_id': {'type': 'integer'},
+                        'tabela': {'type': 'string'},
+                        'operacao': {'type': 'string'},
+                        'data_operacao': {'type': 'string', 'format': 'date-time'},
+                        'registro_antigo': {'type': 'string'},
+                        'registro_novo': {'type': 'string'}
+                    }
+                }
+            },
+            404: {
+                'description': 'Log não encontrado',
+                'schema': {
+                    'type': 'object',
+                    'properties': {
+                        'message': {'type': 'string'}
+                    }
+                }
+            }
+        }
+    })
+    def get(self, log_id):
+        log = LogOperacao.query.get(log_id)
+        if not log:
+            return {"message": "Log não encontrado"}, 404
+        return {
+            "log_id": log.log_id,
+            "tabela": log.tabela,
+            "operacao": log.operacao,
+            "data_operacao": log.data_operacao.isoformat(),
+            "registro_antigo": log.registro_antigo,
+            "registro_novo": log.registro_novo
+        }
+
+    @swag_from({
+        'tags': ['LogOperacao'],
+        'parameters': [
+            {
+                'name': 'log_id',
+                'in': 'path',
+                'required': True,
+                'type': 'integer',
+                'description': 'ID do log a ser deletado'
+            }
+        ],
+        'responses': {
+            200: {
+                'description': 'Log deletado com sucesso',
+                'schema': {
+                    'type': 'object',
+                    'properties': {
+                        'message': {'type': 'string'}
+                    }
+                }
+            },
+            404: {
+                'description': 'Log não encontrado',
+                'schema': {
+                    'type': 'object',
+                    'properties': {
+                        'message': {'type': 'string'}
+                    }
+                }
+            }
+        }
+    })
+    def delete(self, log_id):
+        log = LogOperacao.query.get(log_id)
+        if not log:
+            return {"message": "Log não encontrado"}, 404
+        
+        db.session.delete(log)
+        db.session.commit()
+        return {"message": "Log deletado com sucesso"}, 200
+
+
+# Adicionando as rotas à API
+api.add_resource(LogOperacaoListResource, "/api/logs")
+api.add_resource(LogOperacaoDetailResource, "/api/logs/<int:log_id>")
+
